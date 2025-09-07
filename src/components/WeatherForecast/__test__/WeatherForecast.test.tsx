@@ -85,7 +85,7 @@ vi.mock("../../../utils/stateUtils", () => ({
   )),
 }));
 
-const renderWithTheme = (component: React.ReactElement) => {
+const renderWithTheme = (component: React.ReactNode) => {
   return render(<ThemeProvider theme={theme}>{component}</ThemeProvider>);
 };
 

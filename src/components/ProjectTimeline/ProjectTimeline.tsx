@@ -1,4 +1,4 @@
-import { Schedule } from "@mui/icons-material";
+import { Keyboard, Schedule } from "@mui/icons-material";
 import {
   Timeline,
   TimelineConnector,
@@ -19,8 +19,13 @@ import {
   useTheme,
 } from "@mui/material";
 import { format, parseISO } from "date-fns";
-import { memo } from "react";
+import type { KeyboardEvent } from "react";
+import { memo, useRef, useState } from "react";
 import type { GoNoGoStatus, Task } from "src/types";
+import {
+  announceToScreenReader,
+  handleListKeyboardNavigation,
+} from "src/utils/accessibilityUtils";
 import {
   getFormattedGoNoGoReason,
   getGoNoGoStatusColor,
@@ -50,20 +55,15 @@ interface ProjectTimelineProps {
   loading?: boolean;
 }
 
-const getGoNoGoChip = (status: GoNoGoStatus | undefined) => {
-  const statusText = getGoNoGoStatusText(status);
-  const statusColor = getGoNoGoStatusColor(status);
-
-  return (
-    <Chip
-      label={statusText}
-      size="small"
-      variant={status ? "filled" : "outlined"}
-      color={statusColor}
-      sx={{ fontSize: "0.7rem", fontWeight: status ? "bold" : "normal" }}
-    />
-  );
-};
+const getGoNoGoChip = (status: GoNoGoStatus | undefined) => (
+  <Chip
+    label={getGoNoGoStatusText(status)}
+    size="small"
+    variant={status ? "filled" : "outlined"}
+    color={getGoNoGoStatusColor(status)}
+    sx={{ fontSize: "0.7rem", fontWeight: status ? "bold" : "normal" }}
+  />
+);
 
 const getTaskColor = (isSelected: boolean, isActive: boolean) => {
   if (isSelected) return "primary";
@@ -81,6 +81,9 @@ const ProjectTimelineComponent = ({
 }: ProjectTimelineProps) => {
   const theme = useTheme();
   const isMobile = useIsMobile();
+  const [focusedTaskIndex, setFocusedTaskIndex] = useState(-1);
+  const [hasAnnouncedNavigation, setHasAnnouncedNavigation] = useState(false);
+  const timelineRefs = useRef<(HTMLElement | null)[]>([]);
 
   if (loading) {
     return (
@@ -94,11 +97,82 @@ const ProjectTimelineComponent = ({
 
   const sortedTasks = sortTasksByStartDate(tasks);
 
+  if (timelineRefs.current.length !== sortedTasks.length) {
+    timelineRefs.current = Array(sortedTasks.length).fill(null);
+  }
+
+  const selectedIndex = selectedTaskId
+    ? sortedTasks.findIndex((task) => task.id === selectedTaskId)
+    : -1;
+
+  if (focusedTaskIndex === -1 && selectedIndex !== -1) {
+    setFocusedTaskIndex(selectedIndex);
+
+    setTimeout(() => {
+      if (timelineRefs.current[selectedIndex]) {
+        timelineRefs.current[selectedIndex]?.focus();
+      }
+    }, 100);
+  }
+
+  const handleKeyNavigation = (
+    e: KeyboardEvent<HTMLElement>,
+    index: number
+  ) => {
+    if (!hasAnnouncedNavigation) {
+      announceToScreenReader(
+        "You can use arrow keys to navigate between tasks, Home key to go to the first task, End key to go to the last task, and Enter key to select a task.",
+        "polite"
+      );
+      setHasAnnouncedNavigation(true);
+    }
+
+    const newIndex = handleListKeyboardNavigation(
+      e,
+      index,
+      sortedTasks.length - 1,
+      (newIndex) => {
+        setFocusedTaskIndex(newIndex);
+
+        if (timelineRefs.current[newIndex]) {
+          timelineRefs.current[newIndex]?.focus();
+        }
+
+        const task = sortedTasks[newIndex];
+        if (task) {
+          announceToScreenReader(
+            `Task ${task.name}, ${format(parseISO(task.startDate), "MMM dd")}`
+          );
+        }
+      }
+    );
+
+    if (
+      (e.key === "Enter" || e.key === " ") &&
+      newIndex >= 0 &&
+      newIndex < sortedTasks.length
+    ) {
+      e.preventDefault();
+      onTaskSelect(sortedTasks[newIndex].id);
+      announceToScreenReader(
+        `Selected task: ${sortedTasks[newIndex].name}. Opening details.`,
+        "assertive"
+      );
+    }
+
+    return newIndex;
+  };
+
   return (
     <Card
       sx={{
         height: "fit-content",
         minHeight: CARD_HEIGHTS.projectTimeline,
+      }}
+      onFocus={() => {
+        if (focusedTaskIndex === -1 && selectedIndex !== -1) {
+          setFocusedTaskIndex(selectedIndex);
+        }
       }}
     >
       <CardContent>
@@ -116,6 +190,36 @@ const ProjectTimelineComponent = ({
           </Typography>
         </Box>
 
+        <Box
+          sx={{
+            mb: 2,
+            p: 1,
+            backgroundColor: alpha(theme.palette.info.main, 0.1),
+            borderRadius: 1,
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+          }}
+        >
+          <Typography
+            variant="caption"
+            sx={{
+              fontStyle: "italic",
+              color: "text.secondary",
+              display: "flex",
+              alignItems: "center",
+              gap: 0.5,
+            }}
+          >
+            <Keyboard
+              fontSize="small"
+              aria-hidden="true"
+              sx={{ fontSize: "1rem" }}
+            />
+            Navigate tasks using arrow keys. Press Enter to select a task.
+          </Typography>
+        </Box>
+
         <Timeline position={isMobile ? "right" : "alternate"}>
           {sortedTasks.map((task, index) => {
             const isSelected = task.id === selectedTaskId;
@@ -123,6 +227,7 @@ const ProjectTimelineComponent = ({
             const status = goNoGoStatuses[task.id];
             const startDate = parseISO(task.startDate);
             const taskColor = getTaskColor(isSelected, isActive);
+            const isFocused = focusedTaskIndex === index;
 
             return (
               <TimelineItem key={task.id}>
@@ -156,13 +261,16 @@ const ProjectTimelineComponent = ({
                     }
                     sx={{
                       cursor: "pointer",
-                      transition: "all 0.2s ease-in-out",
+                      transition: theme.transitions.create(["transform"]),
                       transform: isSelected ? "scale(1.2)" : "scale(1)",
                       "&:hover": {
                         transform: "scale(1.1)",
                       },
                     }}
                     onClick={() => onTaskSelect(task.id)}
+                    tabIndex={-1}
+                    role="button"
+                    aria-label={`View details for task ${task.name}`}
                   >
                     {getTaskIcon(task.name)}
                   </TimelineDot>
@@ -171,31 +279,60 @@ const ProjectTimelineComponent = ({
                       sx={{
                         bgcolor: isActive ? taskColor + ".main" : "grey.300",
                         width: isActive ? 3 : 2,
-                        transition: "all 0.2s ease-in-out",
+                        transition: theme.transitions.create([
+                          "background-color",
+                          "width",
+                        ]),
                       }}
                     />
                   )}
                 </TimelineSeparator>
 
                 <TimelineContent
+                  ref={(el) => {
+                    if (el) timelineRefs.current[index] = el;
+                  }}
+                  tabIndex={0}
+                  role="button"
+                  aria-pressed={isSelected}
+                  aria-label={`${task.name}, ${format(
+                    startDate,
+                    "MMM dd"
+                  )}, ${getTaskDurationText(task.duration)}${
+                    status ? `, ${getGoNoGoStatusText(status)}` : ""
+                  }`}
+                  onKeyDown={(e) => handleKeyNavigation(e, index)}
+                  onFocus={() => setFocusedTaskIndex(index)}
                   sx={{
-                    py: "12px",
+                    py: 1.5,
                     px: 2,
                     cursor: "pointer",
-                    transition: "all 0.2s ease-in-out",
+                    transition: theme.transitions.create([
+                      "background-color",
+                      "outline",
+                    ]),
                     borderRadius: 1,
                     "&:hover": {
                       backgroundColor: "action.hover",
                     },
+                    "&:focus": {
+                      outline: `2px solid ${theme.palette.primary.main}`,
+                      outlineOffset: "2px",
+                    },
                     backgroundColor: isSelected
                       ? "action.selected"
                       : "transparent",
+                    outline: isFocused
+                      ? `2px solid ${theme.palette.primary.main}`
+                      : "none",
+                    outlineOffset: isFocused ? "2px" : "0",
                   }}
-                  onClick={() =>
+                  onClick={() => {
+                    setFocusedTaskIndex(index);
                     onTaskSelection
                       ? onTaskSelection(task.id)
-                      : onTaskSelect(task.id)
-                  }
+                      : onTaskSelect(task.id);
+                  }}
                 >
                   <Box sx={{ mb: 1 }}>
                     <Typography
@@ -270,7 +407,11 @@ const ProjectTimelineComponent = ({
                             cursor: "pointer",
                             textDecoration: "underline",
                             textDecorationColor: "transparent",
-                            transition: "all 0.2s ease-in-out",
+                            transition: theme.transitions.create([
+                              "text-decoration-color",
+                              "opacity",
+                              "transform",
+                            ]),
                             "&:hover": {
                               textDecorationColor: "currentColor",
                               opacity: 1,

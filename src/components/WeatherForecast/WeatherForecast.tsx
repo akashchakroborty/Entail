@@ -12,6 +12,7 @@ import {
 import { BarChart } from "@mui/x-charts/BarChart";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Task, WeatherForecast as WeatherForecastType } from "src/types";
+import { createAriaLabel } from "src/utils/accessibilityUtils";
 import {
   CARD_HEIGHTS,
   useIsMobile,
@@ -266,6 +267,10 @@ export function WeatherForecast({
                 size="small"
                 color="primary"
                 sx={{ mr: 1 }}
+                aria-label={createAriaLabel(
+                  isZoomed ? "Show full timeline" : "Zoom to task period",
+                  selectedTask.name
+                )}
               >
                 {isZoomed ? <ZoomOut /> : <ZoomIn />}
               </IconButton>

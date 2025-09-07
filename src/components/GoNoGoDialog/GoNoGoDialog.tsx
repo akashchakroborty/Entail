@@ -23,6 +23,7 @@ import {
 } from "@mui/material";
 import { cloneElement, memo } from "react";
 import type { GoNoGoStatus, Task, WeatherDataPoint } from "src/types";
+import { createAriaLabel } from "src/utils/accessibilityUtils";
 import {
   getFormattedGoNoGoReason,
   getGoNoGoStatusColor,
@@ -164,7 +165,11 @@ const GoNoGoDialogComponent = ({
               <Refresh />
             </IconButton>
           )}
-          <IconButton onClick={onClose} size="small">
+          <IconButton
+            onClick={onClose}
+            size="small"
+            aria-label={createAriaLabel("Close dialog", "Go/No-Go Decision")}
+          >
             <Close />
           </IconButton>
         </Box>

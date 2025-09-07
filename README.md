@@ -14,6 +14,8 @@ A comprehensive marine operations dashboard built for Entail Platform using Reac
 - **Go/No-Go Analysis**: Weather-based decision system for marine operations
 - **Dark/Light Theme**: Complete theme support with Material UI theming
 - **Responsive Design**: Optimized for desktop and mobile devices
+- **Error Handling**: Comprehensive error state management with actionable feedback
+- **Accessibility**: WCAG 2.1 compliant with keyboard navigation, screen reader support, and skip links
 
 ## Technology Stack
 
@@ -24,6 +26,10 @@ A comprehensive marine operations dashboard built for Entail Platform using Reac
   - Modern ES2023 target with bundler-based module resolution
 - **Material-UI 7.3.2** - Component library with custom theme support
 - **MUI X Charts** - Data visualization for weather forecasts
+- **ARIA Support** - Accessibility implementation with WCAG 2.1 compliance
+  - Screen reader announcements
+  - Keyboard navigation helpers
+  - Focus management utilities
 - **Vite 7.1.4** - Build tool with optimized production builds
   - Code splitting with manual chunk configuration
   - Asset optimization and processing
@@ -59,17 +65,24 @@ src/
 ├── assets/              # Static assets like images
 ├── components/          # React components
 │   ├── Dashboard/       # Main dashboard component
-│   ├── ProjectTimeline/ # Timeline visualization
-│   ├── WeatherForecast/ # Weather data charts
-│   ├── ThreeDView/      # 3D visualization component
+│   ├── ErrorState/      # Error handling component with various states
 │   ├── GoNoGoDialog/    # Decision analysis dialog
-│   └── Layout/          # App layout components
+│   ├── Layout/          # App layout components
+│   │   ├── Header.tsx       # App header component
+│   │   ├── MainContent.tsx  # Main content wrapper
+│   │   ├── NavigationSkipLinks.tsx # Accessibility navigation
+│   │   └── RootLayout.tsx   # Root layout structure
+│   ├── ProjectTimeline/ # Timeline visualization
+│   ├── SkipLink/        # Accessibility skip navigation links
+│   ├── ThreeDView/      # 3D visualization component
+│   └── WeatherForecast/ # Weather data charts
 ├── contexts/            # React contexts
 │   ├── DashboardContext.tsx # Dashboard state management
 │   └── ThemeContext.tsx     # Theme management
 ├── data/                # Mock data
 ├── types/               # TypeScript type definitions
 ├── utils/               # Business logic utilities
+│   ├── accessibilityUtils.ts # Accessibility helpers
 │   ├── assetUtils.ts    # Asset management utilities
 │   ├── goNoGoUtils.ts   # Decision support utilities
 │   ├── responsiveUtils.ts # Responsive design helpers
@@ -110,6 +123,32 @@ Weather data is visualized using MUI X Charts with interactive features like zoo
 
 The timeline component displays project tasks with weather-based status indicators, helping operations teams plan activities based on environmental conditions.
 
+### Error Handling
+
+The application includes a robust error handling system with:
+
+- **Centralized Error Component**: Reusable `ErrorState` component for consistent error display
+- **Multiple Severity Levels**: Support for error, warning, and informational states
+- **Actionable Feedback**: Error states include retry actions when applicable
+- **Contextual Messaging**: Custom error messages based on the error context
+- **Visual Differentiation**: Color-coded error states with appropriate icons
+- **Graceful Degradation**: Fallback UI elements when data cannot be loaded
+- **Error Recovery**: Guided recovery options with actionable buttons
+
+### Accessibility
+
+Accessibility features are implemented according to WCAG 2.1 guidelines:
+
+- **Keyboard Navigation**: Full keyboard support for all interactive elements
+- **Skip Links**: Skip navigation links allow keyboard users to bypass navigation
+- **ARIA Attributes**: Proper labeling with aria-* attributes throughout the application
+- **Screen Reader Announcements**: Dynamic announcements for state changes and important updates
+- **Focus Management**: Visible focus indicators and logical tab order
+- **Color Contrast**: Compliant color contrast ratios for text readability
+- **Responsive Design**: Accessible on various screen sizes and devices
+- **Text Alternatives**: All non-text content includes appropriate text alternatives
+- **Semantic HTML**: Proper HTML elements for structural meaning
+
 ### Optimization
 
 The application is optimized for performance with several key strategies:
@@ -124,6 +163,20 @@ The application is optimized for performance with several key strategies:
 ## Development
 
 The project uses modern React patterns with TypeScript for type safety. Business logic is separated into utility modules for better maintainability and testing.
+
+### Component Architecture
+
+The application follows a modular component architecture:
+
+- **Core Components**: Base UI elements with focused responsibilities
+- **Container Components**: Handle data fetching and state management
+- **Utility Functions**: Extracted business logic for better testability
+- **Layout Structure**: Optimized component organization with:
+  - Separated header, content areas, and navigation
+  - Modular component exports without index files
+  - Logical grouping of related functionality
+- **Context Management**: State isolation and sharing through React Context API
+- **Error Boundaries**: Graceful error handling at component boundaries
 
 ## Project Configuration
 

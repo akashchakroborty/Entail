@@ -7,6 +7,9 @@ interface DashboardContextType {
   setSelectedTask: (task: Task | null) => void;
   loading: boolean;
   setLoading: (loading: boolean) => void;
+  error: { type: string; message: string } | null;
+  setError: (error: { type: string; message: string } | null) => void;
+  clearError: () => void;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(
@@ -20,12 +23,20 @@ interface DashboardProviderProps {
 export function DashboardProvider({ children }: DashboardProviderProps) {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<{ type: string; message: string } | null>(
+    null
+  );
+
+  const clearError = () => setError(null);
 
   const value: DashboardContextType = {
     selectedTask,
     setSelectedTask,
     loading,
     setLoading,
+    error,
+    setError,
+    clearError,
   };
 
   return (

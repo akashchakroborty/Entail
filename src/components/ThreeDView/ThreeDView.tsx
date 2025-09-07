@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 import { memo } from "react";
 import type { Task } from "src/types";
+import { createAriaLabel } from "src/utils/accessibilityUtils";
 import { getTaskImage } from "src/utils/assetUtils";
 import { CARD_HEIGHTS, useIsSmallScreen } from "src/utils/responsiveUtils";
 import { EmptyState, LoadingState } from "src/utils/stateUtils";
@@ -159,7 +160,10 @@ const ThreeDViewComponent = ({
               >
                 <img
                   src={taskImage}
-                  alt={`${selectedTask.name} visualization`}
+                  alt={createAriaLabel(
+                    "3D visualization of task",
+                    selectedTask.name
+                  )}
                   style={{
                     width: "100%",
                     height: "auto",
